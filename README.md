@@ -55,6 +55,16 @@ tests/
   integration/            # background.tsの統合テスト（sinon-chrome）
 ```
 
+## 収益化方法
+
+無料版で提供。Pro版でカスタム正規表現を提供する。
+
+## 将来の拡張案
+
+- 表→CSV変換
+
+出典：[稟議書_Chrome拡張機能アイデア.md（項目5）](https://github.com/momokuomomo-crypto/ai-council-output/blob/master/chrome-extension-ideas/稟議書_Chrome拡張機能アイデア.md)
+
 ## 開発の経緯
 
 [ai-build-council](https://github.com/momokuomomo-crypto/ai-build-council)
