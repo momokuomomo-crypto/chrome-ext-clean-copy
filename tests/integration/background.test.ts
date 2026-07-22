@@ -161,3 +161,45 @@ describe("background: メニュークリック", () => {
     consoleErrorSpy.mockRestore();
   });
 });
+
+describe("background: ページの実際の選択範囲を再取得する（監査で発見：info.selectionTextは段落区切りの改行を保持しない）", () => {
+  it("ページから取得できた選択文字列（段落区切りの改行を含む）を優先して使う", async () => {
+    chromeExtra.scripting.executeScript.onFirstCall().resolves([
+      { result: "段落1です。\n\n段落2です。" },
+    ]);
+    chromeExtra.scripting.executeScript.onSecondCall().resolves([{ result: undefined }]);
+    await loadBackgroundFresh();
+
+    // info.selectionTextは（実機で確認した不具合を模して）段落区切りが
+    // 失われた版を渡す。ページ側から取得できた方が優先されるはず。
+    await triggerMenuClick(
+      { menuItemId: MENU_ID, selectionText: "段落1です。 段落2です。" },
+      { id: 1 },
+    );
+
+    const copyCall = chromeExtra.scripting.executeScript.secondCall.args[0];
+    expect(copyCall.args).toEqual(["段落1です。\n\n段落2です。"]);
+  });
+
+  it("ページからの再取得が空文字の場合、info.selectionTextへフォールバックする", async () => {
+    chromeExtra.scripting.executeScript.onFirstCall().resolves([{ result: "" }]);
+    chromeExtra.scripting.executeScript.onSecondCall().resolves([{ result: undefined }]);
+    await loadBackgroundFresh();
+
+    await triggerMenuClick({ menuItemId: MENU_ID, selectionText: "line1\nline2" }, { id: 1 });
+
+    const copyCall = chromeExtra.scripting.executeScript.secondCall.args[0];
+    expect(copyCall.args).toEqual(["line1 line2"]);
+  });
+
+  it("ページからの再取得自体が失敗（保護ページ等）しても、info.selectionTextへフォールバックして処理を続ける", async () => {
+    chromeExtra.scripting.executeScript.onFirstCall().rejects(new Error("Cannot access contents"));
+    chromeExtra.scripting.executeScript.onSecondCall().resolves([{ result: undefined }]);
+    await loadBackgroundFresh();
+
+    await triggerMenuClick({ menuItemId: MENU_ID, selectionText: "line1\nline2" }, { id: 1 });
+
+    const copyCall = chromeExtra.scripting.executeScript.secondCall.args[0];
+    expect(copyCall.args).toEqual(["line1 line2"]);
+  });
+});
